@@ -1,0 +1,35 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: iwmd-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: iwmd-api
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - '6969:6969'
+    environment:
+      PORT: 6969
+      MONGODB_URI: mongodb://mongo:27017/its-wednesday-my-dudes
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      IMAGES_FOLDER_PATH: /app/images
+    volumes:
+      - ./images:/app/images:ro
+
+volumes:
+  mongo-data:
