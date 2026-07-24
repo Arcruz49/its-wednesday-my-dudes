@@ -32,10 +32,9 @@ export class GmailMailerService implements IMailer {
     for (const recipient of recipients) {
       try {
         await this.transporter.sendMail({
-          from: `Weekly Image <${this.fromAddress}>`,
+          from: `Its wednesday my dudes! <${this.fromAddress}>`,
           to: recipient,
-          subject: 'Sua imagem aleatoria da semana',
-          text: 'Segue a imagem aleatoria desta semana, em anexo.',
+          subject: 'Its finally wednesday my dudes!',
           attachments: [
             {
               filename: image.fileName,
