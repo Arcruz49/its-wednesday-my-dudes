@@ -1,113 +1,113 @@
 # It's Wednesday My Dudes
 
-## Objetivo
+## Objective
 
-<!-- TODO: descrever o objetivo do projeto -->
+so... i was bored and i made this email sender about wednesday and frogs...
 
-## Visão geral
+## Overview
 
-API que gerencia uma lista de inscritos (subscribers) e envia, uma vez por semana,
-uma imagem aleatória por e-mail para todos os inscritos ativos. O envio ocorre
-automaticamente toda quarta-feira e também pode ser disparado manualmente.
+An API that manages a list of subscribers and, once a week, emails a random image
+to every active subscriber. The send runs automatically every Wednesday and can
+also be triggered manually.
 
-## Stack técnica
+## Tech stack
 
-| Camada        | Tecnologia                                  |
-| ------------- | ------------------------------------------- |
-| Runtime       | Node.js 22                                  |
-| Linguagem     | TypeScript 5.7                              |
-| Framework     | NestJS 11                                   |
-| Banco de dados| MongoDB 7 (via Mongoose 9)                  |
-| Agendamento   | `@nestjs/schedule` (cron)                   |
-| E-mail        | Nodemailer (Gmail via App Password)         |
-| Configuração  | `@nestjs/config` (variáveis de ambiente)    |
-| Validação     | `class-validator` / `class-transformer`     |
-| Testes        | Jest + Supertest                            |
-| Container     | Docker / Docker Compose                     |
+| Layer        | Technology                                |
+| ------------ | ----------------------------------------- |
+| Runtime      | Node.js 22                                |
+| Language     | TypeScript 5.7                            |
+| Framework    | NestJS 11                                 |
+| Database     | MongoDB 7 (via Mongoose 9)                |
+| Scheduling   | `@nestjs/schedule` (cron)                 |
+| Email        | Nodemailer (Gmail via App Password)       |
+| Config       | `@nestjs/config` (environment variables)  |
+| Validation   | `class-validator` / `class-transformer`   |
+| Testing      | Jest + Supertest                          |
+| Container    | Docker / Docker Compose                   |
 
-## Arquitetura
+## Architecture
 
-O projeto segue uma organização por módulos, cada um dividido em camadas
-(domain / application / infrastructure / presentation), inspirada em Clean
+The project is organized by modules, each split into layers
+(domain / application / infrastructure / presentation), inspired by Clean
 Architecture:
 
 ```
 src/
-├── app.module.ts                 # módulo raiz (config, mongoose, schedule)
-├── main.ts                       # bootstrap (porta via env PORT)
-├── shared/                       # entidade base e contratos compartilhados
+├── app.module.ts                 # root module (config, mongoose, schedule)
+├── main.ts                       # bootstrap (port from env PORT)
+├── shared/                       # base entity and shared contracts
 └── modules/
-    ├── subscribers/              # cadastro/gestão de inscritos
-    │   ├── domain/               # entidade Subscriber, contrato do repositório
+    ├── subscribers/              # subscriber management
+    │   ├── domain/               # Subscriber entity, repository contract
     │   ├── application/          # use cases (subscribe / unsubscribe / list) + DTOs
-    │   ├── infrastructure/       # schema e repositório Mongoose
-    │   └── presentation/         # controller e módulo
-    └── image-mailer/             # seleção de imagem e envio de e-mail
-        ├── domain/               # entidade SendLog, ports (IImagePicker, IMailer, ...)
-        ├── application/          # use case SendWeeklyImage
-        ├── infrastructure/       # picker de pasta local, mailer Gmail, repo de logs
-        └── presentation/         # controller, módulo e scheduler (cron semanal)
+    │   ├── infrastructure/       # Mongoose schema and repository
+    │   └── presentation/         # controller and module
+    └── image-mailer/             # image selection and email delivery
+        ├── domain/               # SendLog entity, ports (IImagePicker, IMailer, ...)
+        ├── application/          # SendWeeklyImage use case
+        ├── infrastructure/       # local folder picker, Gmail mailer, send-log repo
+        └── presentation/         # controller, module and scheduler (weekly cron)
 ```
 
-Pontos de destaque:
+Highlights:
 
-- **Injeção por interface**: dependências como `IMailer`, `IImagePicker` e os
-  repositórios são resolvidas por tokens (`Symbol`), desacoplando use cases das
-  implementações concretas.
-- **Anti-repetição**: o `SendWeeklyImage` consulta os `send_logs` das últimas
-  8 semanas e evita reenviar imagens recentes até esgotar a pool.
-- **Registro de envios**: cada disparo grava um `SendLog` com total de inscritos,
-  sucessos e e-mails que falharam.
+- **Interface-based injection**: dependencies such as `IMailer`, `IImagePicker`
+  and the repositories are resolved via tokens (`Symbol`), decoupling use cases
+  from concrete implementations.
+- **Anti-repeat**: `SendWeeklyImage` reads the `send_logs` from the last 8 weeks
+  and avoids resending recent images until the pool is exhausted.
+- **Send logging**: each dispatch stores a `SendLog` with total subscribers,
+  successes, and failed emails.
 
-## Variáveis de ambiente
+## Environment variables
 
-Definidas em `.env` (execução local) e no `docker-compose.yml` (containers):
+Defined in `.env` (local runs) and in `docker-compose.yml` (containers):
 
-| Variável             | Descrição                                              | Exemplo                                             |
-| -------------------- | ------------------------------------------------------ | --------------------------------------------------- |
-| `PORT`               | Porta HTTP da API                                      | `6969`                                              |
-| `MONGODB_URI`        | String de conexão do MongoDB                           | `mongodb://mongo:27017/its-wednesday-my-dudes`      |
-| `GMAIL_USER`         | Conta Gmail remetente                                  | `voce@gmail.com`                                    |
-| `GMAIL_APP_PASSWORD` | App Password do Gmail (não a senha normal)             | `xxxx xxxx xxxx xxxx`                               |
-| `IMAGES_FOLDER_PATH` | Pasta com as imagens (relativa à raiz ou absoluta)     | `./images`                                          |
+| Variable             | Description                                          | Example                                             |
+| -------------------- | ---------------------------------------------------- | --------------------------------------------------- |
+| `PORT`               | HTTP port for the API                                | `6969`                                              |
+| `MONGODB_URI`        | MongoDB connection string                            | `mongodb://mongo:27017/its-wednesday-my-dudes`      |
+| `GMAIL_USER`         | Sender Gmail account                                 | `you@gmail.com`                                     |
+| `GMAIL_APP_PASSWORD` | Gmail App Password (not your regular password)       | `xxxx xxxx xxxx xxxx`                               |
+| `IMAGES_FOLDER_PATH` | Folder with the images (relative or absolute path)   | `./images`                                          |
 
-> `IMAGES_FOLDER_PATH` aceita caminho relativo — é resolvido a partir do diretório
-> de execução. No Docker, o valor efetivo é `/app/images`, alimentado por um volume.
+> `IMAGES_FOLDER_PATH` accepts a relative path — it is resolved from the working
+> directory. In Docker, the effective value is `/app/images`, backed by a volume.
 
-## Executando com Docker (recomendado)
+## Running with Docker (recommended)
 
-Sobe banco e API juntos:
+Brings up database and API together:
 
 ```bash
 docker compose up -d --build
 ```
 
-- API disponível em `http://localhost:6969`
-- MongoDB exposto em `localhost:27017` (dados persistidos no volume `mongo-data`)
-- A pasta local `./images` é montada em `/app/images` (somente leitura)
+- API available at `http://localhost:6969`
+- MongoDB exposed at `localhost:27017` (data persisted in the `mongo-data` volume)
+- The local `./images` folder is mounted at `/app/images` (read-only)
 
-`GMAIL_USER` e `GMAIL_APP_PASSWORD` são lidos do `.env` do projeto via interpolação
-do Compose.
+`GMAIL_USER` and `GMAIL_APP_PASSWORD` are read from the project's `.env` via
+Compose interpolation.
 
-Comandos úteis:
+Useful commands:
 
 ```bash
-docker compose logs -f api     # acompanhar logs da API
-docker compose down            # parar tudo (mantém os dados)
-docker compose down -v         # parar e apagar os dados do Mongo
+docker compose logs -f api     # follow API logs
+docker compose down            # stop everything (keeps data)
+docker compose down -v         # stop and wipe MongoDB data
 ```
 
-## Executando localmente (sem Docker)
+## Running locally (without Docker)
 
-Requer um MongoDB acessível pela `MONGODB_URI` do `.env`.
+Requires a MongoDB reachable through the `.env` `MONGODB_URI`.
 
 ```bash
 npm install
 
-# desenvolvimento (watch)
+# development (watch)
 npm run start:dev
 
-# produção
+# production
 npm run build
 npm run start:prod
 ```
@@ -116,55 +116,55 @@ npm run start:prod
 
 ### Subscribers
 
-| Método   | Rota           | Descrição                     | Corpo                        |
+| Method   | Route          | Description                    | Body                         |
 | -------- | -------------- | ----------------------------- | ---------------------------- |
-| `POST`   | `/subscribers` | Inscreve um e-mail            | `{ "email": "a@b.com" }`     |
-| `GET`    | `/subscribers` | Lista os inscritos ativos     | —                            |
-| `DELETE` | `/subscribers` | Cancela a inscrição (204)     | `{ "email": "a@b.com" }`     |
+| `POST`   | `/subscribers` | Subscribe an email            | `{ "email": "a@b.com" }`     |
+| `GET`    | `/subscribers` | List active subscribers       | —                            |
+| `DELETE` | `/subscribers` | Unsubscribe (204)             | `{ "email": "a@b.com" }`     |
 
 ### Image Mailer
 
-| Método | Rota                 | Descrição                                          |
-| ------ | -------------------- | -------------------------------------------------- |
-| `POST` | `/image-mailer/send` | Dispara manualmente o envio da imagem semanal      |
+| Method | Route                | Description                                     |
+| ------ | -------------------- | ----------------------------------------------- |
+| `POST` | `/image-mailer/send` | Manually trigger the weekly image send          |
 
-Exemplos:
+Examples:
 
 ```bash
-# inscrever
+# subscribe
 curl -X POST http://localhost:6969/subscribers \
   -H "Content-Type: application/json" \
-  -d '{"email":"voce@exemplo.com"}'
+  -d '{"email":"you@example.com"}'
 
-# listar
+# list
 curl http://localhost:6969/subscribers
 
-# disparar envio manualmente
+# trigger send manually
 curl -X POST http://localhost:6969/image-mailer/send
 ```
 
-## Agendamento
+## Scheduling
 
-O envio automático é feito por um cron (`WeeklyImageScheduler`):
+The automatic send is handled by a cron job (`WeeklyImageScheduler`):
 
-- **Expressão:** `0 9 * * 3` (toda quarta-feira às 09:00)
-- **Fuso:** `America/Sao_Paulo`
-- Configurável em `src/modules/image-mailer/presentation/weekly-image.scheduler.ts`
+- **Expression:** `0 9 * * 3` (every Wednesday at 09:00)
+- **Timezone:** `America/Sao_Paulo`
+- Configurable in `src/modules/image-mailer/presentation/weekly-image.scheduler.ts`
 
-O agendador só dispara enquanto o container/processo da API estiver em execução.
-No Compose, `restart: unless-stopped` garante que a API volte após reinícios.
+The scheduler only fires while the API container/process is running. In Compose,
+`restart: unless-stopped` ensures the API comes back after restarts.
 
-## Testes
+## Testing
 
 ```bash
-npm run test        # unitários
+npm run test        # unit
 npm run test:e2e    # end-to-end
-npm run test:cov    # cobertura
+npm run test:cov    # coverage
 ```
 
-## Observações
+## Notes
 
-- O endpoint `POST /image-mailer/send` é público — este projeto roda em rede
-  privada. Para exposição pública, convém protegê-lo (token/secret).
-- O envio usa Gmail com App Password; a conta precisa ter verificação em duas
-  etapas habilitada para gerar a senha de aplicativo.
+- The `POST /image-mailer/send` endpoint is public — this project runs on a
+  private network. For public exposure, consider protecting it (token/secret).
+- Email delivery uses Gmail with an App Password; the account must have two-step
+  verification enabled to generate the app password.
