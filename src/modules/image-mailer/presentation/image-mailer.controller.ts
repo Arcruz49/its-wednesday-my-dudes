@@ -1,6 +1,5 @@
 import { Controller, Post, HttpCode, Get } from '@nestjs/common';
 import { SendWeeklyImageUseCase } from '../application/use-cases/send-weekly-image.use-case';
-import { get } from 'http';
 
 @Controller('image-mailer')
 export class ImageMailerController {
